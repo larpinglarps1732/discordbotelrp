@@ -37,30 +37,30 @@ app.post('/interactions', (req, res) => {
     return res.json({ type: 1 });
   }
 
-  if (interaction.type === 2 && interaction.data.name === 'command') {
-    return res.json({
-      type: 4,
-      data: {
-        content: 'menu',
-        components: [
-          {
-            type: 1,
-            components: [
-              {
-                type: 3,
-                custom_id: 'menu_select',
-                placeholder: 'Choose an option',
-                options: [
-                  { label: 'Option 1', value: 'option1', description: 'First' },
-                  { label: 'Option 2', value: 'option2', description: 'Second' }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    });
-  }
+  if (interaction.type === 2 && interaction.data.name === 'run') {
+  return res.json({
+    type: 4,
+    data: {
+      content: 'menu',
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 3,
+              custom_id: 'menu_select',
+              placeholder: 'Choose an option',
+              options: [
+                { label: 'Option 1', value: 'option1', description: 'First' },
+                { label: 'Option 2', value: 'option2', description: 'Second' }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  });
+}
 
   if (interaction.type === 3 && interaction.data.custom_id === 'menu_select') {
     return res.json({
