@@ -1,11 +1,15 @@
-const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, REST, Routes } = require('discord.js');
+import { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, REST, Routes } from 'discord.js';
+import { config } from 'dotenv';
+config();
 
-// Replace these with your actual values (hardcoded for now)
-const DISCORD_TOKEN = 'MTQwMTYyODY0MzI1NTM5MDMwMA.Gqqs91.yA59CukSZwy5NiMS31hLq0ramEOpw6Zjgco9Uw';
-const CLIENT_ID = '1401628643255390300';
-const GUILD_ID = '1166591318735200256';
+// Use environment variables or hardcoded values
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN || 'MTQwMTYyODY0MzI1NTM5MDMwMA.GteTCc.qn432MWcEa2VGP46f5xJgkIo6t0UA1lBlvBfJY';
+const CLIENT_ID = process.env.CLIENT_ID || '1401628643255390300';
+const GUILD_ID = process.env.GUILD_ID || '1166591318735200256';
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+
+// ... rest of your code here (unchanged)
 
 // Define your commands
 const commands = [
