@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 const DISCORD_PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
-const GUILD_ID = process.env.GUILD_ID;
+const GUILD_ID = process.env.GUILD_ID; // Your test guild/server ID
 
 const commandData = {
   name: 'run',
@@ -18,7 +18,7 @@ const commandData = {
   options: []
 };
 
-// Register commands (guild and global)
+// Register guild command (instant in that server)
 async function registerGuildCommand() {
   const url = `https://discord.com/api/v10/applications/${CLIENT_ID}/guilds/${GUILD_ID}/commands`;
 
@@ -39,6 +39,7 @@ async function registerGuildCommand() {
   }
 }
 
+// Register global command (shows in DMs, takes ~1 hour)
 async function registerGlobalCommand() {
   const url = `https://discord.com/api/v10/applications/${CLIENT_ID}/commands`;
 
@@ -93,10 +94,12 @@ app.post('/interactions', (req, res) => {
 
   const interaction = req.body;
 
+  // PING (type 1)
   if (interaction.type === 1) {
     return res.json({ type: 1 });
   }
 
+  // Application Command (slash command)
   if (interaction.type === 2 && interaction.data.name === 'run') {
     return res.json({
       type: 4,
@@ -122,6 +125,7 @@ app.post('/interactions', (req, res) => {
     });
   }
 
+  // Component Interaction (select menu)
   if (interaction.type === 3 && interaction.data.custom_id === 'menu_select') {
     return res.json({
       type: 4,
