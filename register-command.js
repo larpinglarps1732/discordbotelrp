@@ -1,8 +1,9 @@
+require('dotenv').config();
 const fetch = require('node-fetch');
 
-const DISCORD_TOKEN = 'MTQwMTYyODY0MzI1NTM5MDMwMA.GZiOQF.ItSL9-G_Te2ebbUasayZ9MNBMK2REEwoWlfq9s';
-const CLIENT_ID = '1401628643255390300';
-const GUILD_ID = '1166591318735200256'; // Your test server ID
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
+const CLIENT_ID = process.env.CLIENT_ID;
+const GUILD_ID = process.env.GUILD_ID;
 
 const commandData = {
   name: 'run',
@@ -11,6 +12,10 @@ const commandData = {
 };
 
 async function registerGuildCommand() {
+  if (!GUILD_ID) {
+    console.log('GUILD_ID not set, skipping guild command registration.');
+    return;
+  }
   const url = `https://discord.com/api/v10/applications/${CLIENT_ID}/guilds/${GUILD_ID}/commands`;
 
   const response = await fetch(url, {
