@@ -1,147 +1,76 @@
-require('dotenv').config();
-const express = require('express');
-const bodyParser = require('body-parser');
-const nacl = require('tweetnacl');
-const fetch = require('node-fetch');
+const { Client, GatewayIntentBits, SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, REST, Routes } = require('discord.js');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+// Replace these with your actual values (hardcoded for now)
+const DISCORD_TOKEN = 'MTQwMTYyODY0MzI1NTM5MDMwMA.Gqqs91.yA59CukSZwy5NiMS31hLq0ramEOpw6Zjgco9Uw';
+const CLIENT_ID = '1401628643255390300';
+const GUILD_ID = '1166591318735200256';
 
-const DISCORD_PUBLIC_KEY = process.env.DISCORD_PUBLIC_KEY;
-const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
-const CLIENT_ID = process.env.CLIENT_ID;
-const GUILD_ID = process.env.GUILD_ID; // Your test guild/server ID
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-const commandData = {
-  name: 'run',
-  description: 'Shows menu',
-  options: []
-};
+// Define your commands
+const commands = [
+  new SlashCommandBuilder()
+    .setName('run')
+    .setDescription('Opens a dropdown menu'),
 
-// Register guild command (instant in that server)
-async function registerGuildCommand() {
-  const url = `https://discord.com/api/v10/applications/${CLIENT_ID}/guilds/${GUILD_ID}/commands`;
+  new SlashCommandBuilder()
+    .setName('commands')
+    .setDescription('Lists all commands'),
+];
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bot ${DISCORD_TOKEN}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(commandData)
-  });
+// Register commands with Discord
+const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
 
-  if (response.ok) {
-    console.log('Guild /run command registered!');
-  } else {
-    const error = await response.json();
-    console.error('Failed to register guild command:', error);
+(async () => {
+  try {
+    console.log('Registering slash commands...');
+    await rest.put(
+      Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
+      { body: commands.map(cmd => cmd.toJSON()) },
+    );
+    console.log('✅ Slash commands registered!');
+  } catch (err) {
+    console.error('❌ Error registering commands:', err);
   }
-}
+})();
 
-// Register global command (shows in DMs, takes ~1 hour)
-async function registerGlobalCommand() {
-  const url = `https://discord.com/api/v10/applications/${CLIENT_ID}/commands`;
+// Handle interactions
+client.on('interactionCreate', async interaction => {
+  if (interaction.isChatInputCommand()) {
+    if (interaction.commandName === 'run') {
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId('select-menu')
+        .setPlaceholder('Choose an option')
+        .addOptions([
+          { label: 'Option 1', value: 'option1', description: 'First option' },
+          { label: 'Option 2', value: 'option2', description: 'Second option' },
+        ]);
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bot ${DISCORD_TOKEN}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(commandData)
-  });
+      const row = new ActionRowBuilder().addComponents(menu);
 
-  if (response.ok) {
-    console.log('Global /run command registered! (may take ~1 hour to appear)');
-  } else {
-    const error = await response.json();
-    console.error('Failed to register global command:', error);
-  }
-}
+      await interaction.reply({ content: 'Choose an option:', components: [row], ephemeral: true });
+    }
 
-async function registerCommands() {
-  await registerGuildCommand();
-  await registerGlobalCommand();
-}
-
-registerCommands();
-
-app.use(bodyParser.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf.toString();
-  }
-}));
-
-function verifyDiscordRequest(req) {
-  const signature = req.get('X-Signature-Ed25519');
-  const timestamp = req.get('X-Signature-Timestamp');
-  const body = req.rawBody;
-
-  if (!signature || !timestamp || !body) return false;
-
-  return nacl.sign.detached.verify(
-    Buffer.from(timestamp + body),
-    Buffer.from(signature, 'hex'),
-    Buffer.from(DISCORD_PUBLIC_KEY, 'hex')
-  );
-}
-
-app.post('/interactions', (req, res) => {
-  if (!verifyDiscordRequest(req)) {
-    return res.status(401).send('Invalid request signature');
+    if (interaction.commandName === 'commands') {
+      await interaction.reply({
+        content: '🧾 **Available Commands:**\n• `/run` — Opens a menu\n• `/commands` — Lists all commands',
+        ephemeral: true
+      });
+    }
   }
 
-  const interaction = req.body;
-
-  // PING (type 1)
-  if (interaction.type === 1) {
-    return res.json({ type: 1 });
+  if (interaction.isStringSelectMenu()) {
+    if (interaction.customId === 'select-menu') {
+      await interaction.update({
+        content: `✅ You selected: ${interaction.values[0]}`,
+        components: []
+      });
+    }
   }
-
-  // Application Command (slash command)
-  if (interaction.type === 2 && interaction.data.name === 'run') {
-    return res.json({
-      type: 4,
-      data: {
-        content: 'menu',
-        components: [
-          {
-            type: 1,
-            components: [
-              {
-                type: 3,
-                custom_id: 'menu_select',
-                placeholder: 'Choose an option',
-                options: [
-                  { label: 'Option 1', value: 'option1', description: 'First' },
-                  { label: 'Option 2', value: 'option2', description: 'Second' }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    });
-  }
-
-  // Component Interaction (select menu)
-  if (interaction.type === 3 && interaction.data.custom_id === 'menu_select') {
-    return res.json({
-      type: 4,
-      data: {
-        content: `You picked: ${interaction.data.values[0]}`
-      }
-    });
-  }
-
-  res.status(400).send('Unknown interaction');
 });
 
-app.get('/', (req, res) => {
-  res.send('Bot is online!');
+client.once('ready', () => {
+  console.log(`🤖 Logged in as ${client.user.tag}`);
 });
 
-app.listen(PORT, () => {
-  console.log(`Bot listening on port ${PORT}`);
-});
+client.login(DISCORD_TOKEN);
